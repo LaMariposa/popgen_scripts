@@ -97,46 +97,51 @@ my @pops;
 my @pop_header=();
 my $n_total=0;
 
-#process each fasta entry
+#process each fasta entry if the sample exists in the list
 while (my ($seqid, $seq) = each(%$seqs_p))
 	{
-	  #get population and phenotype information
-	  my $pop=$samples{$seqid}{'pop'};
-	  my $pheno=$samples{$seqid}{'pheno'};
-	  if (!defined $pop){die "sample $seqid does not exist in population input file $inpops\n"}
+	  #if the sample exist in the sample list
+	  if (exists $samples{$seqid})
+		{
+		  #get population and phenotype information
+		  my $pop=$samples{$seqid}{'pop'};
+		  my $pheno=$samples{$seqid}{'pheno'};
+		  if (!defined $pop){die "sample $seqid does not exist in population input file $inpops\n"}
+	
+		  #process the entry
+		  print "processing $seqid\n";
+		  my $indiv_p=FormatGenos::seq2geno($seqid,$seq);
 
-	  #process the entry
-	  print "processing $seqid\n";
-	  my $indiv_p=FormatGenos::seq2geno($seqid,$seq);
 
+		  #if grouping "population" by pheontype (for fst, association, and selection)
+		  if ($calc_fst || $calc_gxp || $calc_sel)
+	        	{	  
+			  #create pheotype group (if it is new) and push into @phenos
+			  if (!grep(/^$pheno$/,@pheno_names))
+				{
+				  push(@pheno_names, $pheno);
+				  push(@phenos, Bio::PopGen::Population->new(-name => $pheno));
+				}
 
-	  #if grouping "population" by pheontype (for fst, association, and selection)
-	  if ($calc_fst || $calc_gxp || $calc_sel)
-	        {	  
-		  #create pheotype group (if it is new) and push into @phenos
-		  if (!grep(/^$pheno$/,@pheno_names))
-			{
-			  push(@pheno_names, $pheno);
-			  push(@phenos, Bio::PopGen::Population->new(-name => $pheno));
+			  #add individual to the phenotypic group by finding the index of the phenotype designation
+			  $phenos[firstidx {$_ eq $pheno} @pheno_names]->add_Individual($$indiv_p);
 			}
-
-		  #add individual to the phenotypic group by finding the index of the phenotype designation
-		  $phenos[firstidx {$_ eq $pheno} @pheno_names]->add_Individual($$indiv_p);
+		  #if grouping first by popualation and then by phenotype (fst3level)
+		  if ($calc_fst3)
+		        {
+			  #create population (if it is new) and push into @pops
+			  if (!grep(/^$pop\_$pheno$/,@pop_names))
+				{
+				  push(@pop_names, "$pop\_$pheno");
+				  push(@pops, Bio::PopGen::Population->new(-name => "$pop\_$pheno", -description => $pheno, -source => $pop));
+				}
+			  #add individual to the population group by finding the index of the phenotype designation
+	                  $pops[firstidx {$_ eq "$pop\_$pheno"} @pop_names]->add_Individual($$indiv_p);
+		        }
 		}
-	  #if grouping first by popualation and then by phenotype (fst3level)
-	  if ($calc_fst3)
-	        {
-		  #create population (if it is new) and push into @pops
-		  if (!grep(/^$pop\_$pheno$/,@pop_names))
-			{
-			  push(@pop_names, "$pop\_$pheno");
-			  push(@pops, Bio::PopGen::Population->new(-name => "$pop\_$pheno", -description => $pheno, -source => $pop));
-			}
-		  #add individual to the population group by finding the index of the phenotype designation
-                  $pops[firstidx {$_ eq "$pop\_$pheno"} @pop_names]->add_Individual($$indiv_p);
-	        }
+	  #if sample is not in list, ignore it
+	  print "sample $seqid is not in the sample list\n"; 
 	}
-
 
 #make headers
 #if grouping "population" by pheontype (for fst, association, and selection)
