@@ -21,7 +21,7 @@ use Data::Dumper;
 
 sub Fst
 { 
-	use Bio::PopGen::PopStatsModified;
+	use PopStatsModified;
 	
 	#read in inputs
 	my ($pop_names_p, $pops_p, $contig_p, $size_p, $header_p)=@_;
@@ -49,7 +49,7 @@ sub Fst
 			  #calculate fst if any genotypes
 			  if ($genoed[0]>0 && $genoed[1]>0)
 				{
-				  my $stats = Bio::PopGen::PopStatsModified->new();
+				  my $stats = PopStatsModified->new();
 				  #maker marker into an array to make fst calculator happy
 				  my @marker;
 				  $marker[0]=$pos;
@@ -200,7 +200,7 @@ sub association
 
 sub Fst_3level
 {
-use Bio::PopGen::PopStatsHierarchy;
+use PopStatsHierarchy;
         #read in inputs
         my ($pop_names_p, $pops_p, $contig_p, $size_p, $header_p)=@_;
 
@@ -248,7 +248,7 @@ use Bio::PopGen::PopStatsHierarchy;
                   if ($genoed[0]>0 && $genoed[1]>0)
 			{
                           #calc fst
-                          my $stats = Bio::PopGen::PopStatsHierarchy->new();
+                          my $stats = PopStatsHierarchy->new();
                           #maker marker into an array to make fst calculator happy
                           my @marker;
                           $marker[0]=$pos;
