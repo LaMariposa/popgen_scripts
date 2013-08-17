@@ -1,6 +1,7 @@
 #perl modules for calculating population genetic metrics
 #Megan Supple
-#Nov 2011
+#created Nov 2011
+#last modified 14 Aug 2013
 
 package PopGen;
 
