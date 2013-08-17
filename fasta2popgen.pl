@@ -4,7 +4,7 @@
 #script to calculate various pop gen metrics per position from aligned fasta entries
 
 #Megan Supple
-#6 June 2013
+#last modified 14 June 2013
 
 #usage fasta2popgen.pl [options] <in.fasta> <in.pops>
 	#options are to specifiy the analysis 
