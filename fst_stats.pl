@@ -223,7 +223,10 @@ if ($baseline)
                       	}
              	}
 
-      	  #if there are at least 2 variable sites to calc a bootstrap
+      	  #print the number of variable sites
+	  print "$jacks variable sites\n";
+
+	  #if there are at least 2 variable sites to calc a bootstrap
           if ($fst_dist[0])
              	{
                   @fst_sort=sort(@fst_dist);
