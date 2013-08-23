@@ -47,6 +47,7 @@ sub Fst
 				  my @genoed_inds = \$$pops_p[$j]->get_Individuals(-marker => $pos);
 				  $genoed[$j]=scalar @genoed_inds;
 		 		}
+
 			  #calculate fst if any genotypes
 			  if ($genoed[0]>0 && $genoed[1]>0)
 				{
@@ -57,7 +58,7 @@ sub Fst
 				  #use eval to allow recovery from divide by zero and skip window
 				  my ($s1, $s2, $fst)=eval {$stats->Fst(\@$pops_p,\@marker)};
 				  #if able to calculate fst, print result to file
-				  if ($fst) {print OUT "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$s1\t$s2\t$fst\n"}
+				  if (defined $fst) {print OUT "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$s1\t$s2\t$fst\n"}
 					else {print OUT "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t0\t0\tNA\n"}
 				}	  
 		  	  #move to start of next position
@@ -256,7 +257,7 @@ use PopStatsHierarchy;
                           #use eval to allow recovery from divide by zero and skip window
                           my ($r3, $r2, $theta_hat_subS)=eval {$stats->Fst(\@$pops_p,\@marker)};
                           #if able to calculate fst, print result to file
-                          if ($theta_hat_subS) {print OUT "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$r3\t$r2\t$theta_hat_subS\n"}
+                          if (defined $theta_hat_subS) {print OUT "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$r3\t$r2\t$theta_hat_subS\n"}
                             else {print OUT "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t0\t0\tNA\n"}
                         }
                    #move to start of next position
@@ -431,5 +432,98 @@ sub selection
          close OUT2;
 }
 
+
+
+#####################################################################################
+#dxy
+#caluculate absolute genetic divergence (dxy) from Nei 1987, eq 10.20
+#calculates dxy at each position
+#input is pointers to population names, popoulation data, contig name, contig size, header information
+#ouputs text file with dxy along intervals--contig, position, population 1 samples size, population 2 sample size, dxy
+
+sub dxy
+{
+        
+	#read in inputs
+        my ($pop_names_p, $pops_p, $contig_p, $size_p, $header_p)=@_;
+
+	#open output file
+	open(DXY, ">dxy.txt");
+	#print out header information
+	print DXY @$header_p;
+	print DXY "contig\tposition\tn_pop1\tn_pop2\tdxy\n";
+
+	#calculate dxy for each position and print to an output file
+	my $pos=1;
+	while ($pos<$$size_p)
+		{
+		  #determine number of individuals genotyped
+		  my @genoed; ##array of sample sizes indexed by population
+		  #check each population
+		  for (my $j=0;$j<@$pop_names_p;$j++) #j tracks the population
+			{
+			  #get an array of individuals that are genotyped at the marker
+			  my @genoed_inds = \$$pops_p[$j]->get_Individuals(-marker => $pos);
+			  $genoed[$j]=scalar @genoed_inds;
+			}
+
+
+		  #get allele frequencies
+		  #initialize data stucture
+		  my @allele_counts;
+		  for (my $a=0;$a<@$pop_names_p;$a++)
+			{
+			  $allele_counts[$a]{'A'}=0;
+			  $allele_counts[$a]{'T'}=0;
+			  $allele_counts[$a]{'C'}=0;
+			  $allele_counts[$a]{'G'}=0;
+			}
+		  #for each population, for each individual get phenotype and genotype
+		  for (my $j=0;$j<@$pop_names_p;$j++) #j tracks the population
+			{
+			  #get genotypes at the position for each individual in the population
+			  my @genotypes=\$$pops_p[$j]->get_Genotypes(-marker => $pos);
+			  #for each individual in the population
+			  my @genoed_inds = \$$pops_p[$j]->get_Individuals(-marker => $pos);
+			  for (my $k=0;$k<scalar @genoed_inds;$k++) #k tracks the individual
+				{
+				  #for each allele
+				  for (my $l=0;$l<2;$l++) #l tracks the allele
+					{
+					  #get genotype and add to allele count
+					  $allele_counts[$j]{"${$${$genotypes[$k]}{_alleles}}[$l]"}++;
+					}
+				}
+			}
+
+  		  #calculate allele counts in super population
+		  #get allele counts for all populations
+		  #initalize hash
+		  my %total_af = ( 'A'=>0, 'T'=>0, 'C'=>0, 'G'=>0 );
+		  for (my $j=0;$j<@$pop_names_p;$j++)
+			{
+			  $total_af{'A'}+=$allele_counts[$j]{'A'};
+			  $total_af{'T'}+=$allele_counts[$j]{'T'};
+			  $total_af{'C'}+=$allele_counts[$j]{'C'};
+			  $total_af{'G'}+=$allele_counts[$j]{'G'};
+			}
+		  #determine if triallelic and shows variation
+		  my $n_alleles=0;
+       		  if($total_af{'A'}>0) {$n_alleles+=1}
+            	  if($total_af{'T'}>0) {$n_alleles+=1}
+                  if($total_af{'C'}>0) {$n_alleles+=1}
+        	  if($total_af{'G'}>0) {$n_alleles+=1}
+		  
+		  #if a biallelic SNP
+		  if($n_alleles==2)
+			{
+print "bialleleic snp $$contig_p at $pos\n";
+			  #print Dumper(@allele_counts);
+			}
+		  #move to next position
+		  $pos++;
+		}	
+	close DXY;
+}
 
 1;
