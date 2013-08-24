@@ -455,7 +455,7 @@ sub dxy
 
 	#calculate dxy for each position and print to an output file
 	my $pos=1;
-	while ($pos<$$size_p)
+	while ($pos<=$$size_p)
 		{
 		  #determine number of individuals genotyped
 		  my @genoed; ##array of sample sizes indexed by population
@@ -541,7 +541,8 @@ sub dxy
                           my $all2_pop1=$biallele_counts[1]{'pop1'}/($biallele_counts[0]{'pop1'}+$biallele_counts[1]{'pop1'});
                           my $all2_pop2=$biallele_counts[1]{'pop2'}/($biallele_counts[0]{'pop2'}+$biallele_counts[1]{'pop2'});
 			  $dxy=$all1_pop1*$all2_pop2+$all2_pop1*$all1_pop2;
-
+print "pos=$pos\n";
+print Dumper(@allele_counts);
 			  print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$dxy\n";		
 			}
 			else {print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\tNA\n";}
