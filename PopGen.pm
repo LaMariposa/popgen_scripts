@@ -514,12 +514,37 @@ sub dxy
                   if($total_af{'C'}>0) {$n_alleles+=1}
         	  if($total_af{'G'}>0) {$n_alleles+=1}
 		  
+		  my @biallele_counts;
+		  my $dxy;
 		  #if a biallelic SNP
 		  if($n_alleles==2)
 			{
-print "bialleleic snp $$contig_p at $pos\n";
-			  #print Dumper(@allele_counts);
+			  #assign allele frequencies to the two alleles, assuming two populations
+			  my $allele=0;
+			  my @nucleotide;
+			  while (my ($key,$value)=each(%total_af))
+				{
+				  if ($value>0)
+					{
+					  $nucleotide[$allele]=$key;
+					  #get the allele frequency for population 1
+					  $biallele_counts[$allele]{'pop1'}=$allele_counts[0]{$key};
+					  #get the allele frequency for population 2
+					  $biallele_counts[$allele]{'pop2'}=$allele_counts[1]{$key};
+					  $allele++;
+					}
+				}
+
+			  #calculate dxy
+			  my $all1_pop1=$biallele_counts[0]{'pop1'}/($biallele_counts[0]{'pop1'}+$biallele_counts[1]{'pop1'});
+                          my $all1_pop2=$biallele_counts[0]{'pop2'}/($biallele_counts[0]{'pop2'}+$biallele_counts[1]{'pop2'});
+                          my $all2_pop1=$biallele_counts[1]{'pop1'}/($biallele_counts[0]{'pop1'}+$biallele_counts[1]{'pop1'});
+                          my $all2_pop2=$biallele_counts[1]{'pop2'}/($biallele_counts[0]{'pop2'}+$biallele_counts[1]{'pop2'});
+			  $dxy=$all1_pop1*$all2_pop2+$all2_pop1*$all1_pop2;
+
+			  print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$dxy\n";		
 			}
+			else {print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\tNA\n";}
 		  #move to next position
 		  $pos++;
 		}	
