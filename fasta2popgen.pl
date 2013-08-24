@@ -12,6 +12,7 @@
 		#3 level hierarchical fst (by population, then pheontype) (based on Weir 1996, Genetic Data Analysis II)
 		#genotype by phenotype association (two tailed Fisher's exact test)
 		#measures of selection (heterozygosity, pi, segregating sites, Tajima's D, D*, singletons, SNP type (private vs shared)
+		#absolute genetic divergence (dxy) (Nei 1987, eq 10.20)
 
 #requires BioPerl, FormatGenos.pm, PopGen.pm, PopStatsHierarchy.pm, PopStatsModified.pm
 
@@ -36,6 +37,7 @@ options:
 	-fst3level	calculate 3 level fst (level 1: population, level 2: phenotype), returns fst based on pheontype
 	-assoc		calculate genotype by phenotype association (samples grouped by pheotype, ignoring population information)
 	-sel		calculate various measures used to test for selection (samples grouped by phenotype, ignoring population information)
+	-dxy		calculate absolute genetic divergence
 ";
 
 
@@ -43,12 +45,14 @@ my $calc_fst;
 my $calc_fst3;
 my $calc_gxp;
 my $calc_sel;
+my $calc_dxy;
 
 GetOptions (   "fst" => \$calc_fst,
                "fst3level" => \$calc_fst3,
                "assoc" => \$calc_gxp,
                "sel" => \$calc_sel,
-	    );
+	       "dxy" => \$calc_dxy, 
+	   );
 
 
 #read in command line argument
@@ -114,7 +118,7 @@ while (my ($seqid, $seq) = each(%$seqs_p))
 
 
 		  #if grouping "population" by pheontype (for fst, association, and selection)
-		  if ($calc_fst || $calc_gxp || $calc_sel)
+		  if ($calc_fst || $calc_gxp || $calc_sel || $calc_dxy)
 	        	{	  
 			  #create pheotype group (if it is new) and push into @phenos
 			  if (!grep(/^$pheno$/,@pheno_names))
@@ -140,12 +144,12 @@ while (my ($seqid, $seq) = each(%$seqs_p))
 		        }
 		}
 	  #if sample is not in list, ignore it
-	  print "sample $seqid is not in the sample list\n"; 
+	  else {print "sample $seqid is not in the sample list\n"}; 
 	}
 
 #make headers
 #if grouping "population" by pheontype (for fst, association, and selection)
-if ($calc_fst || $calc_gxp || $calc_sel)
+if ($calc_fst || $calc_gxp || $calc_sel || $calc_dxy)
   	{
 	  @pheno_header=("####################\n");
 	  #iterate over phenotypes
@@ -182,9 +186,8 @@ if ($calc_fst3)
 	}
 	
 
-
 #check if all individuals in input file have been entered
-if ($n_total != $n_samples){die "The number of samples in $inpops does not equal the number of samples in $infasta";}
+if ($n_total != $n_samples){die "Not all samples in $inpops are found in $infasta";}
 
 ###############################################################################
 ###calculate popgen estimates##################################################
@@ -218,6 +221,12 @@ if ($calc_sel)
 	  PopGen::selection(\@pheno_names, \@phenos, \$contig, \$size, \@pheno_header);
 	}
 
+#calculate dxy
+if ($calc_dxy)
+	{
+	  print "calculating absolute genetic divergence\n";
+	  PopGen::dxy(\@pheno_names, \@phenos, \$contig, \$size, \@pheno_header);
+	}
 
 print "done!\n";
 
