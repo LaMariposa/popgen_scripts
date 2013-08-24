@@ -119,7 +119,7 @@ sub Fst {
 	   my $total_samples =  $avg_samp_size;	# sum of n over i sub-populations
 	   $avg_samp_size /= $num_sub_pops;
 	   $avg_allele_freq /= $total_samples;
-
+	   
 	   # n-sub-c
 	   my $adj_samp_size = ( 1/ ($num_sub_pops - 1)) *
 	       ( $total_samples - ( $total_samples_squared/$total_samples));
@@ -160,7 +160,7 @@ sub Fst {
 	       $TS_sub1 += $T_sub1;
 	       $TS_sub2 += $T_sub2;
 
-	   } else { 
+	   } else {
 	       my $S_sub1 = $variance - ( (1/($avg_samp_size-1))*
 					  ( ($avg_allele_freq*
 					     (1-$avg_allele_freq)) - 
