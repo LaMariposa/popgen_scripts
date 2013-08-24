@@ -19,21 +19,32 @@ use lib $ENV{PERL5LIB};
  
 use strict; 
 use warnings;
+use Getopt::Long;
 use Data::Dumper;
 
-my $usage = "Usage: fst_stats.pl <InputFstFile.txt> <WindowSize> <StepSize> <MinPropSites> <MinPropIndivs>
-arguments (all required):
+my $usage = "Usage: fst_stats.pl <InputFstFile.txt> <WindowSize> <StepSize> <MinPropSites> <MinPropIndivs> <BootReps>
+arguments (required):
 	<InputFstFile.txt> is per position fst from fasta2popgen.pl
 	<WindowSize> is the size of the sliding window
 	<StepSize> is the size of the step when moving the sliding window
 	<MinPropSites> is the minimum proportion of markers needed to calculate Fst at a window
 	<MinPropIndivs> is the minimum proportion of individuals of each population needed to use a site
+	<BootReps> is the number of bootstrap replicates to do (required only for boot option)
+options:
+	-jack	calculate a jackknife n-1 confidence interval for the contig
+	-boot	calculate a bootstrap confidence interval for the contig
 ";
 
-die "$usage" unless (@ARGV == 5);
+my $jackknife;
+my $bootstrap;
+
+GetOptions (	"jack" => \$jackknife,
+		"boot" => \$bootstrap,	);
+
+die "$usage" unless (@ARGV >= 5);
 
 #read in command line arguments
-my ($infst,$windowSize,$stepSize,$minProp, $minPropInds)=@ARGV;
+my ($infst,$windowSize,$stepSize,$minProp, $minPropInds, $BootReps)=@ARGV;
 
 #open input file and output file for sliding window fst and baseline fst
 open(INFST, $infst)||die "can't open input fst file. $!\n";
@@ -137,7 +148,7 @@ while($line=<INFST>)
 				  #calc mid position
 				  $mid_pos=int($window_start+.5*($windowSize-1));
 				  #print results to outfile	
-				  if ($fst) {print OUTFST "$contig\t$mid_pos\t$fst\n";}
+				  if (defined $fst) {print OUTFST "$contig\t$mid_pos\t$fst\n";}
 					else {print OUTFST "$contig\t$mid_pos\tNA\n";}
 				}	
  
@@ -168,7 +179,7 @@ while($line=<INFST>)
 	}
 
 
-#after EOF calculate final fst and basline fst plus confidence intervals
+#after EOF calculate final fst window
 #calculate Fst from previous window
 #if there are enough markers, calc Fst
 if (@current_set<$windowSize*$minProp)
@@ -192,52 +203,101 @@ else
           #calc mid position
           $mid_pos=int($window_start+.5*($windowSize-1));
           #print results to outfile
-          if ($fst) {print OUTFST "$contig\t$mid_pos\t$fst\n";}
+          if (defined $fst) {print OUTFST "$contig\t$mid_pos\t$fst\n";}
 		else {print OUTFST "$contig\t$mid_pos\tNA\n";}
       	}
 
 
-#after EOF calculate final fst and basline fst plus confidence intervals
+#after EOF calculate basline fst plus confidence intervals
 #calculate baseline fst
 my $baseline=eval{$contig_s1/$contig_s2};
 
 #calculate CI
+my @resample_set;
 my @fst_dist;
 my @fst_sort;
 my $i_low;
 my $i_high;
 
-if ($baseline)
+if ($jackknife || $bootstrap)
         {
-	  #calc variance
-          my $jacks=0;
-	  #iterate over sites
+	  my $locus=0;
+          #iterate over sites
           for (my $i=0;$i<@jack_set;$i++)
-   		{
-                  #if position is variable
-                  if ($jack_set[$i][4]!=0 && $jack_set[$i][5]!=0)
-                  	{
-			  #calculate fst for all sites but the current and add it to the distribution of fsts
-                          $fst_dist[$jacks]=eval{($contig_s1-$jack_set[$i][4])/($contig_s2-$jack_set[$i][5])};
-                          $jacks++;
-                      	}
-             	}
+            	{
+                  #if position is variable put it in array for resampling
+                  if ($jack_set[$i][5]!=0) 
+			{
+			  $resample_set[$locus][0]=$jack_set[$i][4];
+			  $resample_set[$locus][1]=$jack_set[$i][5];
+			  $locus++;
+			}
+			  
+		}
 
-      	  #print the number of variable sites
-	  print "$jacks variable sites\n";
+       	  #print the number of variable sites
+          print "$locus variable sites\n";
+ 
 
-	  #if there are at least 2 variable sites to calc a bootstrap
-          if ($fst_dist[0])
-             	{
-                  @fst_sort=sort(@fst_dist);
-                  $i_low=$jacks*0.025;
-                  $i_high=$jacks*0.975;
-                }
+	  if($jackknife)
+		{
+		  print "jackknifing\n";
+		  @fst_dist=();
+
+	          #iterate over loci
+		  for (my $i=0;$i<$locus;$i++)
+			{        
+		  	  #calculate fst for all sites but the current and add it to the distribution of fsts
+                	  $fst_dist[$i]=eval{($contig_s1-$resample_set[$i][0])/($contig_s2-$resample_set[$i][1])};     	 	
+	             	}
+	
+		  #if there are at least 2 variable sites to calc the confidence interval
+	          if (defined $fst_dist[0])
+        	     	{
+                	  @fst_sort=sort(@fst_dist);
+	                  $i_low=$locus*0.025;
+        	          $i_high=$locus*0.975;
+                	}
 	  
-          print BASE "$contig\t$contig_s1\t$contig_s2\t$fst_sort[$i_low]\t$baseline\t$fst_sort[$i_high]\n";
+	          print BASE "$contig\t$contig_s1\t$contig_s2\t$fst_sort[$i_low]\t$baseline\t$fst_sort[$i_high]\t(jackknife)\n";
+		}
 
-        }
-        else {print BASE "$contig\t$contig_s1\t$contig_s2\tNA\tNA\tNA\n";}
+
+	  if($bootstrap)
+		{
+		  print "bootstrapping\n";
+		  @fst_dist=();
+
+		  #iterate over bootstrap replicates
+		  for (my $rep=0;$rep<$BootReps;$rep++)
+			{
+			  my $s1=0; my $s2=0;
+
+			  #resample same amount of loci
+			  for (my $i=0;$i<$locus;$i++)
+				{
+			  	  #randomly sample loci and record s1 and s2
+			  	  my $rand_num=int(rand($locus));
+			  	  $s1+=$resample_set[$rand_num][0];
+			  	  $s2+=$resample_set[$rand_num][1];
+				}
+			  #calculate fst
+			  $fst_dist[$rep]=eval{$s1/$s2};
+			}
+		  
+		  #if there are any bootstrap values, calculate the confidence interval
+                  if (defined $fst_dist[0])
+                        {
+                          @fst_sort=sort(@fst_dist);
+                          $i_low=$locus*0.025;
+                          $i_high=$locus*0.975;
+                        }
+		  print BASE "$contig\t$contig_s1\t$contig_s2\t$fst_sort[$i_low]\t$baseline\t$fst_sort[$i_high]\t(bootstrap)\n";
+		}
+	}
+else {print BASE "$contig\t$contig_s1\t$contig_s2\tNA\t$baseline\tNA\n";}
+	
+	
 
 close INFST;
 close OUTFST;
