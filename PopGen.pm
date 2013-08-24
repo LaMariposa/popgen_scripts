@@ -354,15 +354,15 @@ sub selection
 					print OUT "$segsites\t";
 					#calculate tajima's D
 					my $tajd = eval{$stats->tajima_D(\@temp_inds)};
-					if ($tajd){print OUT "$tajd\t";}
+					if (defined $tajd){print OUT "$tajd\t";}
 						else {print OUT "NA\t";}
 					#calculate Fu & Li's D* and F*
 					my $d_star=eval{$stats->fu_and_li_D_star(\@temp_inds)};
-                                        if ($d_star){print OUT "$d_star\t";}
+                                        if (defined $d_star){print OUT "$d_star\t";}
                                             else {print OUT "NA\t";}
 					#my $f_star;
                                         #if($n_pop>1){$f_star=eval{$stats->fu_and_li_F_star(\@temp_inds)};}
-                                        #if ($f_star){print OUT "fstar=$f_star\t";}
+                                        #if (defined $f_star){print OUT "fstar=$f_star\t";}
                                         #        else {print OUT "fstar=NA\t";}
 					#calculate singletons
 					my $singletons=$stats->singleton_count(\@temp_inds);
@@ -381,14 +381,14 @@ sub selection
 				   my $segsites = $stats->segregating_sites_count(\@temp_inds_all);
                                            print OUT "$segsites\t";
 				   my $tajd = eval{$stats->tajima_D(\@temp_inds_all)};
-				   	if ($tajd){print OUT "$tajd\t";}
+				   	if (defined $tajd){print OUT "$tajd\t";}
                                            else {print OUT "NA\t";}
                                    my $d_star=eval{$stats->fu_and_li_D_star(\@temp_inds_all)};
-                                        if ($d_star){print OUT "$d_star\t";}
+                                        if (defined $d_star){print OUT "$d_star\t";}
                                            else {print OUT "NA\t";}
 				   #my $f_star;
                                         #if(@temp_inds_all>1){$f_star=eval{$stats->fu_and_li_F_star(\@temp_inds_all)};}
-                                        #if ($f_star){print OUT "fstar=$f_star\t";}
+                                        #if (defined $f_star){print OUT "fstar=$f_star\t";}
                                         #        else {print OUT "fstar=NA\t";}
 				   my $singletons=$stats->singleton_count(\@temp_inds_all);
                                             print OUT "$singletons\t";
