@@ -57,8 +57,8 @@ GetOptions (   "fst" => \$calc_fst,
 
 #read in command line argument
 my ($infasta,$inpops)=@ARGV;
-die "$usage" unless (@ARGV == 2);
-
+die "please provide a fasta file and a sample list file\n$usage" unless (@ARGV == 2);
+die "please specify an analysis\n$usage" unless ($calc_fst || $calc_fst3 || $calc_gxp || $calc_sel || $calc_dxy);
 
 ########################################################################
 ###parse input files####################################################
