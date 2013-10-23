@@ -79,7 +79,7 @@ $line=<INFST>; print OUTFST "$line";	#read in header border
 $line=<INFST>;				#read column header
 
 print "n1=$pop1n and n2=$pop2n\n";
-print OUTFST "contig\tposition\tFst\n";
+print OUTFST "contig\tposition\ts1\ts2\tFst\n";
 print BASE "contig\ts1\ts2\tlowCI\tbaseline_Fst\thighCI\n";
 
 print "calculating sliding window Fst\n";
@@ -106,8 +106,13 @@ while($line=<INFST>)
 	  my $pos=$entry[1];
 
 	  #add to baseline s1 and s2
-	  $contig_s1+=$entry[4];
-	  $contig_s2+=$entry[5];  
+	  #if enough individuals, add it to current marker set
+          if($entry[2]>=$minPropInds*$pop1n && $entry[3]>=$minPropInds*$pop2n)
+         	{
+	  	  $contig_s1+=$entry[4];
+	  	  $contig_s2+=$entry[5];  
+		  push (@jack_set, [@entry]);
+		}
 
 	  #calculate sliding window Fst
 	  #determine if current entry is in the window
@@ -118,7 +123,6 @@ while($line=<INFST>)
 		  if($entry[2]>=$minPropInds*$pop1n && $entry[3]>=$minPropInds*$pop2n)
 			{
 			  push (@current_set, [@entry]);
-			  push (@jack_set, [@entry]);
 			}
 		}
 	  else
@@ -130,7 +134,7 @@ while($line=<INFST>)
 			  if (@current_set<$windowSize*$minProp)
 				{
 				  $mid_pos=int($window_start+.5*($windowSize-1));
-                        	  print OUTFST "$contig\t$mid_pos\tNA\n";
+                        	  print OUTFST "$contig\t$mid_pos\tNA\tNA\tNA\n";
 				}
 			  else
 				{
@@ -148,8 +152,8 @@ while($line=<INFST>)
 				  #calc mid position
 				  $mid_pos=int($window_start+.5*($windowSize-1));
 				  #print results to outfile	
-				  if (defined $fst) {print OUTFST "$contig\t$mid_pos\t$fst\n";}
-					else {print OUTFST "$contig\t$mid_pos\tNA\n";}
+				  if (defined $fst) {print OUTFST "$contig\t$mid_pos\t$sum_s1\t$sum_s2\t$fst\n";}
+					else {print OUTFST "$contig\t$mid_pos\tNA\tNA\tNA\n";}
 				}	
  
 			  #reset current window
@@ -173,7 +177,6 @@ while($line=<INFST>)
                   if($entry[2]>=$minPropInds*$pop1n && $entry[3]>=$minPropInds*$pop2n)
                         {
                           push (@current_set, [@entry]);
-                          push (@jack_set, [@entry]);
                         }
 		}
 	}
@@ -185,7 +188,7 @@ while($line=<INFST>)
 if (@current_set<$windowSize*$minProp)
 	{
           $mid_pos=int($window_start+.5*($windowSize-1));
-          print OUTFST "$contig\t$mid_pos\tNA\n";
+          print OUTFST "$contig\t$mid_pos\tNA\tNA\tNA\n";
 	}
 else
         {
@@ -203,8 +206,8 @@ else
           #calc mid position
           $mid_pos=int($window_start+.5*($windowSize-1));
           #print results to outfile
-          if (defined $fst) {print OUTFST "$contig\t$mid_pos\t$fst\n";}
-		else {print OUTFST "$contig\t$mid_pos\tNA\n";}
+          if (defined $fst) {print OUTFST "$contig\t$mid_pos\t$sum_s1\t$sum_s2\t$fst\n";}
+		else {print OUTFST "$contig\t$mid_pos\tNA\tNA\tNA\n";}
       	}
 
 
@@ -231,8 +234,7 @@ if ($jackknife || $bootstrap)
 			  $resample_set[$locus][0]=$jack_set[$i][4];
 			  $resample_set[$locus][1]=$jack_set[$i][5];
 			  $locus++;
-			}
-			  
+			}  
 		}
 
        	  #print the number of variable sites
@@ -289,8 +291,8 @@ if ($jackknife || $bootstrap)
                   if (defined $fst_dist[0])
                         {
                           @fst_sort=sort(@fst_dist);
-                          $i_low=$locus*0.025;
-                          $i_high=$locus*0.975;
+                          $i_low=$BootReps*0.025;
+                          $i_high=$BootReps*0.975;
                         }
 		  print BASE "$contig\t$contig_s1\t$contig_s2\t$fst_sort[$i_low]\t$baseline\t$fst_sort[$i_high]\t(bootstrap)\n";
 		}
