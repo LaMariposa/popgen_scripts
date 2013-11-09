@@ -8,4 +8,9 @@ Calculates various population genetic metrics from aligned fasta entries. Measur
 
 fst_stats.pl
 ------------
-Calculates sliding window Fst and baseline Fst with jackknife confidence intervals. Input is per position Fst formatted as output from fasta2popgen.pl script. 
+Calculates sliding window Fst and baseline Fst with jackknife confidence intervals. Input is per position Fst formatted as output from fasta2popgen.pl script.
+
+sliding_av.pl
+-------------
+Calculates sliding window average.  Input file has columns: contig, position, number of samples with data for population 1, number of samples with data for population 2, value.  Input parameters are window size, step size, required minimum proportion of sites with data in each window, required minimum proportion of individuals of each population for each site.  Output is a text file with sliding window values.
+ 
