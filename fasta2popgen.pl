@@ -26,7 +26,7 @@ use warnings;
 use FormatGenos;
 use PopGen;
 use Getopt::Long;
-use List::MoreUtils qw(firstidx);
+use List::MoreUtils qw(firstidx uniq);
 use Data::Dumper;
 
 my $usage = "Usage: fasta2popgen.pl [options] <in.fasta> <in.pops>
@@ -100,6 +100,7 @@ my @pop_names=();
 my @pops;
 my @pop_header=();
 my $n_total=0;
+my @pheno_temp;
 
 #process each fasta entry if the sample exists in the list
 while (my ($seqid, $seq) = each(%$seqs_p))
@@ -111,7 +112,8 @@ while (my ($seqid, $seq) = each(%$seqs_p))
 		  my $pop=$samples{$seqid}{'pop'};
 		  my $pheno=$samples{$seqid}{'pheno'};
 		  if (!defined $pop){die "sample $seqid does not exist in population input file $inpops\n"}
-	
+		  push(@pheno_temp, $pheno);
+
 		  #process the entry
 		  print "processing $seqid\n";
 		  my $indiv_p=FormatGenos::seq2geno($seqid,$seq);
@@ -166,28 +168,50 @@ if ($calc_fst || $calc_gxp || $calc_sel || $calc_dxy)
 		}
 	  push(@pheno_header,"####################\n");
 	}
-#if grouping by population, then by phenotype (for fst3level)
+##if grouping by population, then by phenotype (for fst3level)
 if ($calc_fst3)
 	{
+	  my @pheno_uniq=uniq @pheno_temp;
+
 	  @pop_header=("####################\n");
+	  my @pheno_n=(0) x @pheno_uniq;
+	  my @pheno_samples=();
+
           #iterate over phenotypes
           for (my $i=0; $i<@pop_names; $i++)
 		{
 		  #determine sample size for the population and print to header
                   my $num_inds=$pops[$i]->get_number_individuals;
-                  push(@pop_header,"#$pop_names[$i]:n=$num_inds\n#");
                   #get a list of samples associated with the population
                   my @inds=$pops[$i]->get_Individuals();
-                  foreach(@inds){push(@pop_header, $_->unique_id);push(@pop_header,","); }
-                  push(@pop_header, "\n");
-                  $n_total+=$num_inds;
+		  #get phenotype for the population
+		  my @this_pop=split("_",$pop_names[$i]);
+		  #record information by phenotype
+		  
+		  for (my $j=0; $j<@pheno_uniq; $j++)
+			{
+			  if ($this_pop[1] eq $pheno_uniq[$j])
+				{
+				  #update population size
+				  $pheno_n[$j]+=$num_inds;
+				  #update sample list
+				  foreach(@inds){$pheno_samples[$j].=$_->unique_id; $pheno_samples[$j].=",";}
+                  		  #foreach(@inds){push(@pheno_samples[$j], $_->unique_id);push(@pop_header,","); }
+				}
+			}	
+		}
+	  for (my $i=0; $i<@pheno_uniq; $i++)
+		{
+                  push(@pop_header,"#$pheno_uniq[$i]:n=$pheno_n[$i]\n#");
+                  push(@pop_header, "$pheno_samples[$i]\n");
+                  $n_total+=$pheno_n[$i];
                 }
            push(@pop_header,"####################\n");
 	}
 	
 
 #check if all individuals in input file have been entered
-if ($n_total != $n_samples){die "Not all samples in $inpops are found in $infasta";}
+#if ($n_total != $n_samples){die "Not all samples in $inpops are found in $infasta";}
 
 ###############################################################################
 ###calculate popgen estimates##################################################
@@ -205,7 +229,8 @@ if ($calc_fst3)
         {
           print "calculating 3 level Fst\n";
           PopGen::Fst_3level(\@pop_names, \@pops, \$contig, \$size, \@pop_header);
-        }
+ 
+       }
 
 #calculate genotype by phenotype association
 if ($calc_gxp)
