@@ -440,6 +440,7 @@ sub selection
 #calculates dxy at each position
 #input is pointers to population names, popoulation data, contig name, contig size, header information
 #ouputs text file with dxy along intervals--contig, position, population 1 samples size, population 2 sample size, dxy
+#only calculates for biallelic snps, reports zero otherwise
 
 sub dxy
 {
@@ -535,17 +536,17 @@ sub dxy
 					}
 				}
 
-			  #calculate dxy
-			  my $all1_pop1=$biallele_counts[0]{'pop1'}/($biallele_counts[0]{'pop1'}+$biallele_counts[1]{'pop1'});
-                          my $all1_pop2=$biallele_counts[0]{'pop2'}/($biallele_counts[0]{'pop2'}+$biallele_counts[1]{'pop2'});
-                          my $all2_pop1=$biallele_counts[1]{'pop1'}/($biallele_counts[0]{'pop1'}+$biallele_counts[1]{'pop1'});
-                          my $all2_pop2=$biallele_counts[1]{'pop2'}/($biallele_counts[0]{'pop2'}+$biallele_counts[1]{'pop2'});
-			  $dxy=$all1_pop1*$all2_pop2+$all2_pop1*$all1_pop2;
-print "pos=$pos\n";
-print Dumper(@allele_counts);
-			  print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$dxy\n";		
+			  #calculate dxy if both populations have genotyped samples	  
+			  my $all1_pop1 = eval{$biallele_counts[0]{'pop1'}/($biallele_counts[0]{'pop1'}+$biallele_counts[1]{'pop1'})};
+                          my $all1_pop2 = eval{$biallele_counts[0]{'pop2'}/($biallele_counts[0]{'pop2'}+$biallele_counts[1]{'pop2'})};
+                          my $all2_pop1 = eval{$biallele_counts[1]{'pop1'}/($biallele_counts[0]{'pop1'}+$biallele_counts[1]{'pop1'})};
+                          my $all2_pop2 = eval{$biallele_counts[1]{'pop2'}/($biallele_counts[0]{'pop2'}+$biallele_counts[1]{'pop2'})};
+			  if (defined $all1_pop1 && defined $all1_pop2 && defined $all2_pop1 and defined $all2_pop2)
+				{$dxy=eval{$all1_pop1*$all2_pop2+$all2_pop1*$all1_pop2};}
+			  if (defined $dxy) {print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t$dxy\n";}
+			    else {print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t0\n";}
 			}
-			else {print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\tNA\n";}
+			else {print DXY "$$contig_p\t$pos\t$genoed[0]\t$genoed[1]\t0\n";}
 		  #move to next position
 		  $pos++;
 		}	
