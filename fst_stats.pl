@@ -22,7 +22,7 @@ use warnings;
 use Getopt::Long;
 use Data::Dumper;
 
-my $usage = "Usage: fst_stats.pl <InputFstFile.txt> <WindowSize> <StepSize> <MinPropSites> <MinPropIndivs> <BootReps>
+my $usage = "Usage: fst_stats.pl [options] <InputFstFile.txt> <WindowSize> <StepSize> <MinPropSites> <MinPropIndivs> <BootReps>
 arguments (required):
 	<InputFstFile.txt> is per position fst from fasta2popgen.pl
 	<WindowSize> is the size of the sliding window
